@@ -1,7 +1,9 @@
 # 5counter
 
-Count from 0 to 4.
-Uses 3 IO pins:
+Tiny counter from 0 to 4 build on top of flashlight with 2 leds.
+Uses ATtiny13A as MCU.
+
+Project 3 IO pins:
 
 * for red _signal_ led
 * for white _flashlight_ led
