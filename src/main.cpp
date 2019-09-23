@@ -129,103 +129,110 @@ int main()
       // Main logic block
       if (released)
         {
-          GIMSK |= _BV(INT0); //Ee-enable external interrupt
           pressed = false;
           released = false;
-          TCCR0A = 0; // Disable PWM
-          TCNT0 = 0; //Timer value
-          OCR0A = 0; // Compare value
 
-          switch (BtnState) // Select action
+          // Was flashlight active?
+          // If so - we need to disable it
+          if (lighting)
             {
-              // 1st fade
-              // Show remaining value
-              case 0:
-              {
-                // Turn LED off
-                PORTB |= _BV(PWM);
-                _delay_ms(500);
-
-                // Did we reach value of 5?
-                if (payCount == 4)
-                  {
-                    // If so, just one long flash
-                    PORTB &= ~_BV(PWM);
-                    _delay_ms(1500);
-                    PORTB |= _BV(PWM);
-                  }
-                else
-                  {
-                    // If not - show how much left
-                    flash(4 - payCount);
-                  }
-
-                break;
-              }
-
-              // 2nd fade
-              // Increase value
-              case 1:
-              {
-                payCount++;
-
-                // If it is 5 - reset
-                if (payCount == 5)
-                  {
-                    payCount = 0;
-                  }
-
-                // Two short and one long flashes
-                PORTB |= _BV(PWM);
-                _delay_ms(200);
-                PORTB &= ~_BV(PWM);
-                _delay_ms(200);
-                PORTB |= _BV(PWM);
-                _delay_ms(200);
-                PORTB &= ~_BV(PWM);
-                _delay_ms(200);
-                PORTB |= _BV(PWM);
-                _delay_ms(200);
-                PORTB &= ~_BV(PWM);
-                _delay_ms(500);
-                PORTB |= _BV(PWM);
-                break;
-              }
-
-              // 3 or more fades - just turn flashlight on
-              default:
-              {
-                PORTB &= ~_BV(WHITE);
-                lighting = true;
-                break;
-              }
+              TIMSK0 &= ~_BV(TOIE0); // Disable interrupt
+              PORTB |= _BV(PWM);
+              _delay_ms(250);
+              PORTB |= _BV(WHITE);
+              lighting = false;
+              GIMSK |= _BV(INT0); //Ee-enable external interrupt
+              set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+              sleep_mode();
+              TIMSK0 |= _BV(TOIE0); // Enable interrupt
+              sei();
             }
+          else
+            {
+              TIMSK0 &= ~_BV(TOIE0); // Disable interrupt
+              TCCR0A = 0; // Disable PWM
+              TCNT0 = 0; //Timer value
+              OCR0A = 0; // Compare value
 
-          // And now sleep!
-          set_sleep_mode(SLEEP_MODE_PWR_DOWN);
-          sleep_mode();
-          // Here we wake up
-          // It happens ONLY when button is pressed
-          BtnState = 0; // Reset press state
-          PORTB |= _BV(PWM);
-          TCNT0 = 0; //Timer value
-          OCR0A = 0; /// Compare value
-          TCCR0A = _BV(COM0A1) | _BV(WGM00); // Re-enable timer
-          sei(); // Re-enable interrupts
-        }
+              switch (BtnState) // Select action
+                {
+                  // 1st fade
+                  // Show remaining value
+                  case 0:
+                  {
+                    // Turn LED off
+                    PORTB |= _BV(PWM);
+                    _delay_ms(500);
 
-      // Was flashlight active?
-      // If so - we need to disable it
-      if (lighting)
-        {
-          PORTB |= _BV(PWM);
-          _delay_ms(250);
-          PORTB |= _BV(WHITE);
-          GIMSK |= _BV(INT0);
-          lighting = false;
-          set_sleep_mode(SLEEP_MODE_PWR_DOWN);
-          sleep_mode();
-          sei();
+                    // Did we reach value of 5?
+                    if (payCount == 4)
+                      {
+                        // If so, just one long flash
+                        PORTB &= ~_BV(PWM);
+                        _delay_ms(1500);
+                        PORTB |= _BV(PWM);
+                      }
+                    else
+                      {
+                        // If not - show how much left
+                        flash(4 - payCount);
+                      }
+
+                    break;
+                  }
+
+                  // 2nd fade
+                  // Increase value
+                  case 1:
+                  {
+                    payCount++;
+
+                    // If it is 5 - reset
+                    if (payCount == 5)
+                      {
+                        payCount = 0;
+                      }
+
+                    // Two short and one long flashes
+                    PORTB |= _BV(PWM);
+                    _delay_ms(200);
+                    PORTB &= ~_BV(PWM);
+                    _delay_ms(200);
+                    PORTB |= _BV(PWM);
+                    _delay_ms(200);
+                    PORTB &= ~_BV(PWM);
+                    _delay_ms(200);
+                    PORTB |= _BV(PWM);
+                    _delay_ms(200);
+                    PORTB &= ~_BV(PWM);
+                    _delay_ms(500);
+                    PORTB |= _BV(PWM);
+                    break;
+                  }
+
+                  // 3 or more fades - just turn flashlight on
+                  default:
+                  {
+                    PORTB &= ~_BV(WHITE);
+                    lighting = true;
+                    break;
+                  }
+                }
+
+              // And now sleep!
+              GIMSK |= _BV(INT0); //Re-enable external interrupt
+              set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+              sleep_mode();
+              // Here we wake up
+              // It happens ONLY when button is pressed
+              BtnState = 0; // Reset press state
+              TIMSK0 |= _BV(TOIE0); // Enable interrupt
+              PORTB |= _BV(PWM);
+              TCNT0 = 0; //Timer value
+              OCR0A = 0; /// Compare value
+              TCCR0A = _BV(COM0A1) | _BV(WGM00); // Re-enable timer
+              sei(); // Re-enable interrupts
+            }
         }
     }
 }
